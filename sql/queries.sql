@@ -53,6 +53,29 @@ FROM PostGiveawaySales p
 GROUP BY p.`style`
 ORDER BY total_subsequent_revenue DESC;
 
+--What is the exact percentage of sales revenue lost to cart cancellations across each product category?
+
+
+SELECT 
+    category,
+    SUM(CASE WHEN LOWER(status) = 'cancelled' THEN amount ELSE 0 END) AS cancelled_revenue,
+    SUM(amount) AS total_potential_revenue,
+    ROUND(
+        (SUM(CASE WHEN LOWER(status) = 'cancelled' THEN amount ELSE 0 END) / NULLIF(SUM(amount), 0)) * 100, 
+        2
+    ) AS pct_revenue_lost
+FROM 
+   amazon_sales_report.amazon_sales_report_cleaned
+WHERE 
+    amount IS NOT NULL 
+    AND amount > 0
+GROUP BY 
+    category
+ORDER BY 
+    pct_revenue_lost DESC;
+
+
+
 
 
 
