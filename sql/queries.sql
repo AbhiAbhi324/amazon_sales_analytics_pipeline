@@ -75,6 +75,19 @@ ORDER BY
     pct_revenue_lost DESC;
 
 
+SELECT 
+    Style,
+    Size,
+    sku,
+    COUNT(sku) AS total_item_in_slowmoving
+FROM amazon_sales_report_cleaned
+WHERE item_velocity = 'Slow Moving'
+GROUP BY Style, Size, sku
+ORDER BY total_item_in_slowmoving ;
+
+
+
+
 
 
 
