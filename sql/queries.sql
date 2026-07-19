@@ -86,6 +86,26 @@ GROUP BY Style, Size, sku
 ORDER BY total_item_in_slowmoving ;
 
 
+use amazon_sales_report;
+
+SELECT 
+    fulfilment,
+    COUNT(*) AS total_orders,
+    SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) AS cancelled_orders,
+    (SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) * 100.0) / COUNT(*) AS cancellation_rate_pct,
+    SUM(CASE WHEN status <> 'Cancelled' THEN 1 ELSE 0 END) AS successful_orders,
+    SUM(CASE WHEN status <> 'Cancelled' THEN amount ELSE 0 END) AS successful_revenue,
+    SUM(CASE WHEN status <> 'Cancelled' THEN amount ELSE 0 END) / 
+    NULLIF(SUM(CASE WHEN status <> 'Cancelled' THEN 1 ELSE 0 END), 0) AS aov
+FROM amazon_sales_report_cleaned
+GROUP BY fulfilment;
+
+
+select * from amazon_sales_report_cleaned limit 10;
+
+
+
+
 
 
 
