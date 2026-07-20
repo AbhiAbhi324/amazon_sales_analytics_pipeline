@@ -83,7 +83,7 @@ SELECT
 FROM amazon_sales_report_cleaned
 WHERE item_velocity = 'Slow Moving'
 GROUP BY Style, Size, sku
-ORDER BY total_item_in_slowmoving ;
+ORDER BY total_item_in_slowmoving desc;
 
 
 use amazon_sales_report;
@@ -112,7 +112,98 @@ JOIN amazon_sales_report_cleaned b
     ON a.order_id = b.order_id  AND a.category < b.category
 where a.qty>0 and b.qty>0
 GROUP BY category_1,category_2
-order by frequency desc
+order by frequency desc;
+
+
+--What are the top 3 highest-revenue selling days of the week, and do weekends significantly outperform weekdays?
+
+SELECT 
+    day_name,
+    ROUND(SUM(amount), 2) AS total_revenue,
+    COUNT(DISTINCT DATE(`date`)) AS total_occurrences_in_data,
+    ROUND(SUM(amount) / COUNT(DISTINCT DATE(`date`)), 2) AS average_daily_revenue,
+    CASE 
+        WHEN day_name IN ('Saturday', 'Sunday') THEN 'Weekend' 
+        ELSE 'Weekday' 
+    END AS day_classification
+FROM amazon_sales_report_cleaned
+WHERE qty > 0 
+  AND amount > 0 
+  AND `status` NOT LIKE '%Cancel%'
+  AND `status` NOT LIKE '%Return%'
+GROUP BY day_name
+ORDER BY average_daily_revenue DESC;
+
+--Which specific months show massive sales spikes, and which categories dominate those specific months?
+
+
+SELECT month,category,total_revenue
+from(
+SELECT
+   month,
+   category,
+   sum(amount) as total_revenue,
+   ROW_NUMBER() over(PARTITION BY month order by sum(amount) desc) as num
+from amazon_sales_report_cleaned
+WHERE qty>0
+      AND amount>0
+      AND `status` NOT LIKE '%Cancel%'
+      AND `status` NOT LIKE '%Return%'
+GROUP BY month,category)as month_category_sales
+where num<4
+ORDER BY FIELD(month, 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December');
+
+--: Which discount coupons (promotion-ids) brought in the highest volume of high-margin paid orders versus those that heavily cut into your profitability?
+
+
+SELECT 
+    promotion,
+    SUM(amount) AS total_revenue
+FROM amazon_sales_report_cleaned
+WHERE qty > 0 
+  AND amount > 0 
+  AND `status` NOT LIKE '%Cancel%' 
+  AND `status` NOT LIKE '%Return%'
+GROUP BY promotion
+ORDER BY total_revenue DESC;
+
+
+--What are the top 5 product categories or styles driving the highest purchase volumes from bulk B2B buyers compared to standard B2C customers?
+
+SELECT 
+    category,
+    SUM(CASE WHEN `b2b` = TRUE THEN qty ELSE 0 END) AS total_qty_b2b,
+    SUM(CASE WHEN `b2b` = FALSE THEN qty ELSE 0 END) AS total_qty_b2c
+FROM amazon_sales_report_cleaned
+WHERE qty > 0 
+  AND amount > 0 
+  AND `status` NOT LIKE '%Cancel%' 
+  AND `status` NOT LIKE '%Return%'
+GROUP BY category
+ORDER BY total_qty_b2b DESC;
+
+
+--Are B2B buyers ordering predominantly during specific time frames, and are they ordering items heading to specific Tier-1 logisitical hubs?
+ 
+
+SELECT 
+  CASE 
+        WHEN day_name IN ('Saturday', 'Sunday') THEN 'Weekend' 
+        ELSE 'Weekday' 
+    END AS day_classification,
+  `ship-postal-code`,
+  count(`ship-postal-code`) as b2b_order_count,
+  sum(qty) as total_qty
+from amazon_sales_report_cleaned
+WHERE qty > 0 
+  AND amount > 0 
+  AND `status` NOT LIKE '%Cancel%' 
+  AND `status` NOT LIKE '%Return%'
+  AND b2b = TRUE
+GROUP BY `ship-postal-code`,day_classification
+HAVING count(`ship-postal-code`)>5
+ORDER BY b2b_order_count desc;
+
 
 
 
