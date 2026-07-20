@@ -101,7 +101,24 @@ FROM amazon_sales_report_cleaned
 GROUP BY fulfilment;
 
 
-select * from amazon_sales_report_cleaned limit 10;
+SELECT * from amazon_sales_report_cleaned limit 4;
+SELECT 
+    a.category AS category_1,
+    b.category AS category_2,
+    COUNT(DISTINCT a.order_id) as frequency
+
+FROM amazon_sales_report_cleaned a
+JOIN amazon_sales_report_cleaned b 
+    ON a.order_id = b.order_id  AND a.category < b.category
+where a.qty>0 and b.qty>0
+GROUP BY category_1,category_2
+order by frequency desc
+
+
+
+
+
+
 
 
 
